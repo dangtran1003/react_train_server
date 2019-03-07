@@ -2,7 +2,7 @@ import logging
 
 from flask import Blueprint, request, jsonify
 from sqlalchemy import or_
-
+from app_core.utils import json_encode
 from app_core.models import db, User
 
 _logger = logging.getLogger(__name__)
@@ -10,7 +10,7 @@ _logger = logging.getLogger(__name__)
 user = Blueprint('user', __name__)
 
 
-@user.route('api/user/delete', methods=['POST'])
+@user.route('/api/user/delete', methods=['POST'])
 def delete_user():
     """Xoa user"""
     if request.method == 'POST':
@@ -40,10 +40,10 @@ def delete_user():
                  "data": {}}), 500
 
 
-@user.route('api/user/list', methods=['GET', 'POST'])
+@user.route('/api/user/list', methods=['GET', 'POST'])
 def list_user():
     """Lấy danh sách user"""
-    if request.method == 'GET':
+    if request.method == 'POST':
         format_response = {
             "error": {
                 "code": 0,
@@ -51,13 +51,24 @@ def list_user():
             },
             "data": {}
         }
-        user = User.query.all()
-        if user is not None:
-            format_response['data'] = user
-        return jsonify(format_response)
+        data = request.get_json()
+        query = User.query
+        total = query.count()
+        query = query.limit(data['limit']).offset(data['offset'])
+        list_users = list(query)
+        data_users = []
+        if list_users is not None:
+            for user in list_users:
+                user_json = {'username':user.username,
+                             'email': user.email,
+                             'name': user.name}
+                data_users.append(user_json)
+        format_response['data'] = data_users
+        format_response["total_users"] = total
+        return json_encode(format_response)
 
 
-@user.route('api/user/add', methods=['GET', 'POST'])
+@user.route('/api/user/add', methods=['GET', 'POST'])
 def add_user():
     if request.method == 'POST':
         format_response = {
@@ -73,13 +84,9 @@ def add_user():
             format_response['error'][
                 'message'] = 'Thieu username hoac email'
             return jsonify(format_response)
-        user = User.query.filter_by(or_(User.username.like(data['username']),
+        user = User.query.filter(or_(User.username.like(data['username']),
             User.email.like(data['email']))).first()
         if user:
-
-
-
-
             format_response['error']['code'] = 1
             format_response['error'][
                 'message'] = 'Username hoặc email đã tồn tại'
@@ -92,7 +99,7 @@ def add_user():
         return jsonify(format_response)
 
 
-@user.route('api/user/modify', methods=['GET', 'POST'])
+@user.route('/api/user/modify', methods=['GET', 'POST'])
 def mod_user():
     if request.method == 'POST':
         format_response = {

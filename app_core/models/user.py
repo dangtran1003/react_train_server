@@ -7,4 +7,4 @@ class User(BaseModel):
     __tablename__ = 'user'
     username = db.Column(db.String, primary_key=True, unique=True)
     email = db.Column(db.String, primary_key=True, unique=True)
-    name = db.Column(db.String)
+    name = db.Column(db.String, nullable=True)
