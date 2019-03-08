@@ -22,6 +22,7 @@ def delete_user():
             "data": {}
         }
         data = request.get_json()
+        print(data)
         id = data['id']
         try:
             user = User.query.filter_by(id=id).first()
@@ -54,14 +55,16 @@ def list_user():
         data = request.get_json()
         query = User.query
         total = query.count()
-        query = query.limit(data['limit']).offset(data['offset'])
+        query = query.limit(data['limit']).offset(
+            data['offset'] * data['limit'])
         list_users = list(query)
         data_users = []
         if list_users is not None:
             for user in list_users:
-                user_json = {'username':user.username,
+                user_json = {'username': user.username,
                              'email': user.email,
-                             'name': user.name}
+                             'name': user.name,
+                             'id': user.id}
                 data_users.append(user_json)
         format_response['data'] = data_users
         format_response["total_users"] = total
@@ -119,5 +122,24 @@ def mod_user():
         else:
             format_response['error'] = 1
             format_response['error']['messgae'] = "Update không thành công!"
+
+        return jsonify(format_response)
+
+
+@user.route('/api/user/detail', methods=['GET', 'POST'])
+def user_detail():
+    if request.method == 'POST':
+        format_response = {
+            "error": {
+                "code": 0,
+                "message": "Thành công"
+            },
+            "data": {}
+        }
+        data = request.get_json()
+        user = User.query.filter_by(id=data['id']).first()
+        if user:
+            format_response['data']['email'] = user.email
+            format_response['data']['name'] = user.name
 
         return jsonify(format_response)
