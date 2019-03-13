@@ -22,23 +22,27 @@ def delete_user():
             "data": {}
         }
         data = request.get_json()
-        print(data)
-        id = data['id']
-        try:
-            user = User.query.filter_by(id=id).first()
-            if user:
-                db.session.delete(user)
-                db.session.commit()
-                format_response['error']['message'] = 'Xóa thành công!'
-            else:
-                format_response['error']['code'] = 1
-                format_response['error']['message'] = 'Xóa không thành công'
-            return jsonify(format_response)
-        except Exception as e:
-            db.session.rollback()
-            return jsonify(
-                {"error": {"code": 1, "message": "Internal server error!"},
-                 "data": {}}), 500
+        if 'id' in data:
+            id = data['id']
+            try:
+                user = User.query.filter_by(id=id).first()
+                if user:
+                    db.session.delete(user)
+                    db.session.commit()
+                    format_response['error']['message'] = 'Xóa thành công!'
+                else:
+                    format_response['error']['code'] = 1
+                    format_response['error']['message'] = 'Xóa không thành công'
+                return jsonify(format_response)
+            except Exception as e:
+                db.session.rollback()
+                return jsonify(
+                    {"error": {"code": 1, "message": "Internal server error!"},
+                     "data": {}}), 500
+        else:
+            format_response['error']['code'] = 1
+            format_response['error']['message'] = 'Xóa không thành công'
+        return jsonify(format_response)
 
 
 @user.route('/api/user/list', methods=['GET', 'POST'])
@@ -52,11 +56,19 @@ def list_user():
             },
             "data": {}
         }
+
         data = request.get_json()
         query = User.query
         total = query.count()
+        if data['key'] != None:
+            if len(data['key'].split()) != 0:
+                key_search = '%'+data['key']+'%'
+                query = query.filter(
+                    or_(User.username.like(key_search),
+                        User.email.like(key_search)))
         query = query.limit(data['limit']).offset(
             data['offset'] * data['limit'])
+
         list_users = list(query)
         data_users = []
         if list_users is not None:
@@ -99,6 +111,7 @@ def add_user():
             db.session.add(user)
             db.session.commit()
             format_response['error']['message'] = 'Tao user thành công!'
+            format_response['data']['id'] = user.id
         return jsonify(format_response)
 
 
@@ -139,6 +152,7 @@ def user_detail():
         data = request.get_json()
         user = User.query.filter_by(id=data['id']).first()
         if user:
+            format_response['data']['username'] = user.username
             format_response['data']['email'] = user.email
             format_response['data']['name'] = user.name
 
